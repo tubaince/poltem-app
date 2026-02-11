@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context'; // Daha stabil versiyon
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Welcome = ({ navigation }: any) => {
   return (
@@ -10,13 +10,15 @@ const Welcome = ({ navigation }: any) => {
         <Text style={styles.subtitle}>Geleceğin eğitim platformuna hoş geldiniz.</Text>
         
         <View style={styles.buttonContainer}>
+          {/* Giriş Yap Butonu - Artik Login sayfasına gider */}
           <TouchableOpacity 
             style={styles.button} 
-            onPress={() => navigation.navigate('Register')} // Önce Register'ı test edeceğiz
+            onPress={() => navigation.navigate('Login')} 
           >
             <Text style={styles.buttonText}>Giriş Yap</Text>
           </TouchableOpacity>
           
+          {/* Kayıt Ol Butonu - Register sayfasına gider */}
           <TouchableOpacity 
             style={[styles.button, styles.registerButton]} 
             onPress={() => navigation.navigate('Register')}
@@ -54,8 +56,8 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: 'row',
-    // Bazı eski React Native sürümleri 'gap' desteklemez, hata verirse bunu silip 
-    // butonlara margin ekleyebilirsin.
+    // Eğer butonlar birbirine yapışık çıkarsa buradaki gap: 15 kalsın. 
+    // Eğer hata verirse gap yerine butonlara marginHorizontal: 7.5 verebilirsin.
     gap: 15, 
   },
   button: {
