@@ -82,3 +82,8 @@ yarn-error.log
 
 # Firebase (Güvenlik için bunu da ekleyelim)
 google-services.json
+
+
+
+# Supabase config
+src/lib/supabase.ts
