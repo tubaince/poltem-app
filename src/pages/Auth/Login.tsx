@@ -23,21 +23,43 @@ const Login = ({ navigation }: any) => {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (!identifier || !password) {
-      Alert.alert('Uyarı', 'Lütfen tüm alanları doldurun.');
+    // Giriş alanlarının kontrolü
+    if (!identifier.trim() || !password) {
+      Alert.alert('Uyarı', 'Lütfen e-posta/kullanıcı adı ve şifrenizi girin.');
       return;
     }
+
     setLoading(true);
+
     try {
-      const loginField = identifier.includes('@') ? { email: identifier.trim() } : { email: `${identifier.trim()}@poltemakademi.com` };
+
+      // Eğer identifier '@' içermiyorsa, varsayılan domain eklenerek e-posta formatına getirilir.
+      const finalEmail = identifier.includes('@') 
+        ? identifier.trim() 
+        : `${identifier.trim()}@poltemakademi.com`;
+
       const { data, error } = await supabase.auth.signInWithPassword({
-        ...loginField,
+        email: finalEmail,
         password: password,
       });
-      if (error) throw error;
-      navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+
+      if (error) {
+        // Supabase'den gelen hatalar
+        if (error.message === 'Invalid login credentials') {
+          throw new Error('E-posta veya şifre hatalı.');
+        } else if (error.message.includes('Email not confirmed')) {
+          throw new Error('Lütfen e-posta adresinizi onaylayın.');
+        }
+        throw error;
+      }
+
+      if (data?.session) {
+        // Giriş başarılı, ana sayfaya yönlendir
+        navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+      }
+
     } catch (error: any) {
-      Alert.alert('Giriş Hatası', 'Bilgileriniz hatalı görünüyor.');
+      Alert.alert('Giriş Hatası', error.message || 'Bilgileriniz hatalı görünüyor.');
     } finally {
       setLoading(false);
     }
@@ -54,7 +76,7 @@ const Login = ({ navigation }: any) => {
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
-         
+          
           <View style={styles.topSection}>
             <View style={styles.logoSection}>
               <Image
@@ -66,7 +88,6 @@ const Login = ({ navigation }: any) => {
             <Text style={styles.mainTitle}>Hesabınıza Giriş Yapın</Text>
           </View>
 
-        
           <View style={styles.formSection}>
             <View style={styles.card}>
               <View style={styles.inputContainer}>
@@ -78,6 +99,7 @@ const Login = ({ navigation }: any) => {
                   placeholder="kullanıcı adı veya eposta"
                   placeholderTextColor="#A0A0A0"
                   autoCapitalize="none"
+                  keyboardType="email-address"
                 />
               </View>
 
@@ -93,19 +115,28 @@ const Login = ({ navigation }: any) => {
                     placeholderTextColor="#A0A0A0"
                   />
                   <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
-                  
-                    <Text style={styles.eyeText}>{showPassword ? '👁️' : '👁️'}</Text>
+                    <Text style={styles.eyeEmoji}>{showPassword ? '👁️' : '🔒'}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             </View>
-            <View style={styles.dividerArea}>
+
+            <View style={styles.forgotBtnArea}>
               <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
                 <Text style={styles.forgotText}>Şifrenizi mi unuttunuz?</Text>
               </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.loginBtn} onPress={handleLogin} disabled={loading}>
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.loginBtnText}>GİRİŞ YAP</Text>}
+
+            <TouchableOpacity 
+              style={[styles.loginBtn, loading && styles.disabledBtn]} 
+              onPress={handleLogin} 
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.loginBtnText}>GİRİŞ YAP</Text>
+              )}
             </TouchableOpacity>
 
             <View style={styles.dividerArea}>
@@ -115,7 +146,6 @@ const Login = ({ navigation }: any) => {
             </View>
           </View>
 
-         
           <View style={styles.footerSection}>
             <View style={styles.registerPanel}>
               <Text style={styles.newAccountText}>Yeni Kullanıcı?</Text>
@@ -150,17 +180,17 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, color: '#666', marginBottom: 4 },
   input: { fontSize: 16, color: '#333', paddingVertical: 6 },
   passwordRow: { flexDirection: 'row', alignItems: 'center' },
-  eyeBtn: { padding: 6, backgroundColor: '#2176FF', borderRadius: 4 },
-  eyeText: { fontSize: 14 },
+  eyeBtn: { padding: 8, backgroundColor: '#2176FF', borderRadius: 6 },
+  eyeEmoji: { fontSize: 14, color: '#fff' },
 
-  forgotBtn: { alignSelf: 'flex-end', marginTop: 12 },
-  forgotText: { color: '#2176FF', fontSize: 14 },
+  forgotBtnArea: { alignSelf: 'center', marginTop: 15 },
+  forgotText: { color: '#2176FF', fontSize: 14, fontWeight: '500' },
 
   loginBtn: { backgroundColor: '#2176FF', padding: 16, borderRadius: 8, marginTop: 25, alignItems: 'center' },
+  disabledBtn: { backgroundColor: '#A0C4FF' },
   loginBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 16, letterSpacing: 1 },
 
-  dividerArea: { alignItems: 'center', marginTop: 20 },
-  orText: { color: '#888', marginBottom: 10 },
+  dividerArea: { alignItems: 'center', marginTop: 25 },
   phoneLink: { color: '#2176FF', fontWeight: '600' },
 
   footerSection: { marginBottom: 10 },

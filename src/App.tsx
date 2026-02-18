@@ -1,14 +1,20 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import ForgotPassword from './pages/Auth/ForgotPassword';
 
-
+// Sayfalarınızı içe aktarın 
 import Welcome from './pages/Welcome/Welcome';
 import Register from './pages/Auth/Register';
 import Login from './pages/Auth/Login';
 import Home from './pages/Home/Home';
+import ForgotPassword from './pages/Auth/ForgotPassword';
 import PhoneLogin from './pages/Auth/PhoneLogin';
+import CreateSurvey from './pages/Surveys/CreateSurvey';
+
+
+import VerifyOTP from './pages/Auth/VerifyOTP';
+import Profile from './pages/Auth/Profile';
+import ResetPassword from './pages/Auth/ResetPassword';
 
 const Stack = createStackNavigator();
 
@@ -18,24 +24,21 @@ function App() {
       <Stack.Navigator
         initialRouteName="Welcome"
         screenOptions={{
-          headerShown: false, 
+          headerShown: false,
         }}
       >
-        {/* Karşılama Ekranı */}
         <Stack.Screen name="Welcome" component={Welcome} />
-
-        {/* Kayıt Ol Ekranı */}
         <Stack.Screen name="Register" component={Register} />
-
-        {/* Giriş Yap Ekranı */}
         <Stack.Screen name="Login" component={Login} />
-
-        {/* Ana Sayfa - Kayıt veya Giriş başarılı olunca buraya yönlenir */}
         <Stack.Screen name="Home" component={Home} />
-
         <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
-
         <Stack.Screen name="PhoneLogin" component={PhoneLogin} />
+        <Stack.Screen name="Profile" component={Profile} />
+
+        {/* --- YENİ EKLENEN ANKET OLUŞTURMA SAYFASI --- */}
+        <Stack.Screen name="CreateSurvey" component={CreateSurvey} />
+        <Stack.Screen name="VerifyOTP" component={VerifyOTP} />
+        <Stack.Screen name="ResetPassword" component={ResetPassword} />
       </Stack.Navigator>
     </NavigationContainer>
   );

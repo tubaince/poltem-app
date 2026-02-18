@@ -20,22 +20,43 @@ const ForgotPassword = ({ navigation }: any) => {
   const [loading, setLoading] = useState(false);
 
   const handleResetPassword = async () => {
-    if (!email) {
+    const cleanEmail = email.trim();
+    
+    if (!cleanEmail) {
       Alert.alert('Hata', 'Lütfen e-posta adresinizi giriniz.');
       return;
     }
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
-      if (error) throw error;
+      // 1. ADIM: Supabase Auth'un şifre sıfırlama tetikleyicisini çalıştır
+      const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail);
+
+      if (error) {
+        // Teknik hataları kontrol et ve özel mesajlar fırlat
+        if (error.message.includes("User not found") || error.status === 422) {
+          throw new Error('Bu e-posta adresine ait bir kullanıcı bulunamadı.');
+        }
+        if (error.message.includes("rate limit") || error.message.includes("limit exceeded")) {
+          throw new Error('Çok fazla istek gönderildi. Lütfen birkaç dakika bekleyip tekrar deneyiniz.');
+        }
+        throw error;
+      }
       
+      // 2. ADIM: Başarılıysa kullanıcıyı bilgilendir ve VerifyOTP'ye yönlendir
       Alert.alert(
-        'E-posta Gönderildi', 
-        'Şifre sıfırlama bağlantısı e-posta adresinize gönderilmiştir.'
+        'Kod Gönderildi', 
+        'E-posta adresinize 6 haneli bir doğrulama kodu gönderilmiştir.',
+        [
+          { 
+            text: 'Tamam', 
+            onPress: () => navigation.navigate('VerifyOTP', { email: cleanEmail }) 
+          }
+        ]
       );
-      navigation.goBack();
+
     } catch (err: any) {
+  
       Alert.alert('Hata', err.message);
     } finally {
       setLoading(false);
@@ -52,7 +73,6 @@ const ForgotPassword = ({ navigation }: any) => {
           <View style={styles.centeredContent}>
             
             <View style={styles.header}>
-              {/* Logonuz burada gözükecek */}
               <Image 
                 source={require('../../assets/logo.png')} 
                 style={styles.logo} 
@@ -60,7 +80,7 @@ const ForgotPassword = ({ navigation }: any) => {
               />
               <Text style={styles.title}>Şifrenizi Yenileyin</Text>
               <Text style={styles.subTitle}>
-                Bağlantı göndermemiz için e-posta adresinizi girin.
+                Doğrulama kodu göndermemiz için e-posta adresinizi girin.
               </Text>
             </View>
 
@@ -86,7 +106,7 @@ const ForgotPassword = ({ navigation }: any) => {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.resetBtnText}>ŞİFRE YENİLE</Text>
+                <Text style={styles.resetBtnText}>KOD GÖNDER</Text>
               )}
             </TouchableOpacity>
 

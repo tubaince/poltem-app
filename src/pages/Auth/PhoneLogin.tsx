@@ -16,29 +16,46 @@ import {
 import { supabase } from '../../lib/supabase';
 
 const PhoneLogin = ({ navigation }: any) => {
+  // Başlangıç değerini boş bırakabilir veya sadece + koyabilirsin
   const [phone, setPhone] = useState('+90');
   const [loading, setLoading] = useState(false);
 
   const handlePhoneLogin = async () => {
-    if (phone.length < 10) {
+    const cleanPhone = phone.trim();
+    
+    // Basit bir uzunluk kontrolü
+    if (cleanPhone.length < 10) {
       Alert.alert('Hata', 'Lütfen geçerli bir telefon numarası giriniz.');
       return;
     }
 
     setLoading(true);
     try {
-   
       const { error } = await supabase.auth.signInWithOtp({
-        phone: phone.trim(),
+        phone: cleanPhone,
       });
 
       if (error) throw error;
 
-      Alert.alert('Kod Gönderildi', 'Doğrulama kodu telefonunuza iletildi.');
 
-      navigation.navigate('Verify', { phone: phone.trim() });
+      Alert.alert(
+        'Kod Gönderildi', 
+        'Doğrulama kodu telefonunuza iletildi.',
+        [
+          { 
+            text: 'Tamam', 
+            onPress: () => navigation.navigate('VerifyOTP', { phone: cleanPhone }) 
+          }
+        ]
+      );
+      
     } catch (err: any) {
-      Alert.alert('Hata', err.message);
+      let msg = err.message;
+      // Rate limit hatası
+      if (msg.includes("limit exceeded")) {
+        msg = "Çok fazla istek gönderildi. Lütfen bir süre bekleyin.";
+      }
+      Alert.alert('Hata', msg);
     } finally {
       setLoading(false);
     }
@@ -74,6 +91,7 @@ const PhoneLogin = ({ navigation }: any) => {
                   value={phone} 
                   onChangeText={setPhone}
                   keyboardType="phone-pad"
+                  autoComplete="tel"
                 />
               </View>
             </View>
