@@ -8,11 +8,20 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
-  SafeAreaView
+  SafeAreaView,
+  Modal,
+  FlatList
 } from 'react-native';
 import { supabase } from '../../lib/supabase';
 
-// Arayüze is_researcher eklendi
+// Türkiye'deki popüler bankalar listesi
+const TURKISH_BANKS = [
+  "Akbank", "Denizbank", 
+  "Garanti BBVA", "Halkbank", "Kuveyt Türk", 
+  "QNB Finansbank", "Türkiye İş Bankası", "Vakıfbank", 
+  "Yapı Kredi", "Ziraat Bankası", "Diğer"
+].sort();
+
 interface ProfileData {
   id: string;
   full_name: string;
@@ -21,11 +30,14 @@ interface ProfileData {
   bank_name: string;
   full_name_bank: string;
   is_researcher: boolean; 
+  gender: string;
+  birth_date: string;
 }
 
 const Profile = ({ navigation }: any) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [bankModalVisible, setBankModalVisible] = useState(false); // Modal kontrolü
   
   const [formData, setFormData] = useState<Partial<ProfileData>>({
     full_name: '',
@@ -33,7 +45,9 @@ const Profile = ({ navigation }: any) => {
     iban: '',
     bank_name: '',
     full_name_bank: '',
-    is_researcher: false
+    is_researcher: false,
+    gender: '',
+    birth_date: ''
   });
 
   useEffect(() => {
@@ -61,7 +75,9 @@ const Profile = ({ navigation }: any) => {
           iban: data.iban || '',
           bank_name: data.bank_name || '',
           full_name_bank: data.full_name_bank || '',
-          is_researcher: data.is_researcher || false
+          is_researcher: data.is_researcher || false,
+          gender: data.gender || '',
+          birth_date: data.birth_date || ''
         });
       }
     } catch (error) {
@@ -72,8 +88,8 @@ const Profile = ({ navigation }: any) => {
   }
 
   async function handleSave() {
-    if (!formData.full_name || !formData.phone) {
-      Alert.alert('Eksik Bilgi', 'Lütfen Ad-Soyad ve Telefon alanlarını doldurunuz.');
+    if (!formData.full_name || !formData.phone || !formData.gender || !formData.birth_date) {
+      Alert.alert('Eksik Bilgi', 'Lütfen yıldızlı (*) alanların tamamını doldurunuz.');
       return;
     }
 
@@ -89,15 +105,7 @@ const Profile = ({ navigation }: any) => {
       };
 
       const { error } = await supabase.from('profiles').upsert(updates);
-
-      if (error) {
-        if (error.message.includes("row level security")) {
-             Alert.alert('Bilgi', 'Kayıt işlemi veritabanı izni bekliyor, ama devam edebilirsiniz.');
-             navigation.goBack();
-             return;
-        }
-        throw error;
-      }
+      if (error) throw error;
 
       Alert.alert('Başarılı', 'Profil bilgileriniz güncellendi.');
       navigation.goBack();
@@ -108,6 +116,11 @@ const Profile = ({ navigation }: any) => {
       setSaving(false);
     }
   }
+
+  const selectBank = (bank: string) => {
+    setFormData({ ...formData, bank_name: bank });
+    setBankModalVisible(false);
+  };
 
   if (loading) {
     return (
@@ -128,14 +141,13 @@ const Profile = ({ navigation }: any) => {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollPadding}>
-        <Text style={styles.subText}>Bilgilerinizi buradan güncelleyebilirsiniz.</Text>
+        <Text style={styles.subText}>Hedef kitle analizi ve ödemeler için bilgilerinizi eksiksiz doldurunuz.</Text>
 
-        {/* Araştırmacı Statüsü Göstergesi (Hata almamak için metin sarmalaması kontrol edildi) */}
-        {formData.is_researcher ? (
+        {formData.is_researcher && (
           <View style={styles.researcherBadge}>
             <Text style={styles.researcherBadgeText}>✓ Onaylı Araştırmacı Hesabı</Text>
           </View>
-        ) : null}
+        )}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Kişisel Bilgiler</Text>
@@ -146,6 +158,33 @@ const Profile = ({ navigation }: any) => {
               style={styles.input}
               value={formData.full_name}
               onChangeText={(text) => setFormData({ ...formData, full_name: text })}
+              placeholder="Ad Soyad"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Cinsiyet *</Text>
+            <View style={styles.genderContainer}>
+              {['Kadın', 'Erkek'].map((g) => (
+                <TouchableOpacity
+                  key={g}
+                  style={[styles.genderOption, formData.gender === g && styles.genderSelected]}
+                  onPress={() => setFormData({ ...formData, gender: g })}
+                >
+                  <Text style={[styles.genderText, formData.gender === g && styles.genderTextSelected]}>{g}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Doğum Tarihi *</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.birth_date}
+              onChangeText={(text) => setFormData({ ...formData, birth_date: text })}
+              placeholder="YYYY-AA-GG (Örn: 1995-05-20)"
+              keyboardType="numeric"
             />
           </View>
 
@@ -156,20 +195,25 @@ const Profile = ({ navigation }: any) => {
               value={formData.phone}
               onChangeText={(text) => setFormData({ ...formData, phone: text })}
               keyboardType="phone-pad"
+              placeholder="05xx xxx xx xx"
             />
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Banka Bilgileri</Text>
+          <Text style={styles.sectionTitle}>Ödeme Bilgileri (İsteğe Bağlı)</Text>
           
+          {/* BANKA SEÇİM ALANI (YENİ DROPDOWN MANTIĞI) */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Banka Adı</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.bank_name}
-              onChangeText={(text) => setFormData({ ...formData, bank_name: text })}
-            />
+            <TouchableOpacity 
+              style={styles.input} 
+              onPress={() => setBankModalVisible(true)}
+            >
+              <Text style={{ color: formData.bank_name ? '#333' : '#999' }}>
+                {formData.bank_name || "Banka seçmek için dokunun"}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.inputGroup}>
@@ -179,6 +223,7 @@ const Profile = ({ navigation }: any) => {
               value={formData.iban}
               onChangeText={(text) => setFormData({ ...formData, iban: text })}
               autoCapitalize="characters"
+              placeholder="TRxx xxxx..."
             />
           </View>
 
@@ -188,14 +233,39 @@ const Profile = ({ navigation }: any) => {
               style={styles.input}
               value={formData.full_name_bank}
               onChangeText={(text) => setFormData({ ...formData, full_name_bank: text })}
+              placeholder="Banka hesabındaki isim"
             />
           </View>
         </View>
 
         <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
-          {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>DEĞİŞİKLİKLERİ KAYDET</Text>}
+          {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>PROFİLİ GÜNCELLE</Text>}
         </TouchableOpacity>
       </ScrollView>
+
+      {/* BANKA SEÇİM MODALI */}
+      <Modal visible={bankModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Banka Seçiniz</Text>
+              <TouchableOpacity onPress={() => setBankModalVisible(false)}>
+                <Text style={styles.closeText}>Kapat</Text>
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={TURKISH_BANKS}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity style={styles.bankItem} onPress={() => selectBank(item)}>
+                  <Text style={styles.bankItemText}>{item}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 };
@@ -222,10 +292,9 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '600', color: '#333', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#E0E0E0', paddingBottom: 5 },
   inputGroup: { marginBottom: 15 },
   label: { fontSize: 13, color: '#444', marginBottom: 6, fontWeight: '500' },
-  input: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E0E0E0', borderRadius: 8, padding: 12, fontSize: 16, color: '#333' },
+  input: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E0E0E0', borderRadius: 8, padding: 12, fontSize: 16, color: '#333', justifyContent: 'center' },
   saveBtn: { backgroundColor: '#2176FF', paddingVertical: 16, borderRadius: 10, alignItems: 'center', marginTop: 10 },
   saveBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
-  // Yeni eklenen rozet stili
   researcherBadge: {
     backgroundColor: '#E3F2FD',
     padding: 10,
@@ -235,7 +304,21 @@ const styles = StyleSheet.create({
     borderColor: '#2176FF',
     alignItems: 'center'
   },
-  researcherBadgeText: { color: '#2176FF', fontWeight: 'bold', fontSize: 14 }
+  researcherBadgeText: { color: '#2176FF', fontWeight: 'bold', fontSize: 14 },
+  genderContainer: { flexDirection: 'row', justifyContent: 'space-between' },
+  genderOption: { flex: 1, padding: 12, borderWidth: 1, borderColor: '#E0E0E0', borderRadius: 8, alignItems: 'center', marginHorizontal: 5, backgroundColor: '#fff' },
+  genderSelected: { backgroundColor: '#2176FF', borderColor: '#2176FF' },
+  genderText: { color: '#666', fontWeight: '500' },
+  genderTextSelected: { color: '#fff' },
+
+  // Modal Stilleri
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, height: '70%', padding: 20 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  modalTitle: { fontSize: 18, fontWeight: 'bold' },
+  closeText: { color: '#2176FF', fontWeight: 'bold' },
+  bankItem: { paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  bankItemText: { fontSize: 16, color: '#333' }
 });
 
 export default Profile;
