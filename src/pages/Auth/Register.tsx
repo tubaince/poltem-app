@@ -41,7 +41,7 @@ const AgreementRow = ({ title, value, onValueChange, onPressTitle }: any) => (
       <Text style={styles.agreementLink}>Detayları okumak için dokunun</Text>
     </TouchableOpacity>
     <Switch
-      trackColor={{ false: "#D1D1D1", true: "#007AFF" }}
+      trackColor={{ false: "#D1D1D1", true: "#EC7928" }}
       thumbColor={"#fff"}
       ios_backgroundColor="#D1D1D1"
       onValueChange={onValueChange}
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   footerLinkText: {
-    color: '#007AFF',
+    color: '#EC7928',
     fontWeight: 'bold',
   },
   container: { flex: 1, backgroundColor: '#FFFFFF' },
@@ -220,8 +220,8 @@ const styles = StyleSheet.create({
   agreementSection: { marginTop: 15 },
   agreementCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8F9FB', padding: 12, borderRadius: 12, marginBottom: 10 },
   agreementTitle: { fontWeight: '600' },
-  agreementLink: { fontSize: 11, color: '#007AFF' },
-  registerBtn: { backgroundColor: '#007AFF', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 10 },
+  agreementLink: { fontSize: 11, color: '#EC7928' },
+  registerBtn: { backgroundColor: '#EC7928', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 10 },
   disabledBtn: { backgroundColor: '#ccc' },
   registerBtnText: { color: '#fff', fontWeight: 'bold' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
   modalBody: { marginBottom: 15 },
   modalText: { lineHeight: 20 },
-  modalCloseBtn: { backgroundColor: '#007AFF', padding: 12, borderRadius: 10, alignItems: 'center' },
+  modalCloseBtn: { backgroundColor: '#EC7928', padding: 12, borderRadius: 10, alignItems: 'center' },
   modalCloseText: { color: '#fff', fontWeight: 'bold' }
 });
 

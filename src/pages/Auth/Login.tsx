@@ -114,7 +114,7 @@ const Login = ({ navigation }: any) => {
                     placeholder="••••••••••••"
                     placeholderTextColor="#A0A0A0"
                   />
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                     <Text style={styles.eyeEmoji}>{showPassword ? '👁️' : '🔒'}</Text>
                   </TouchableOpacity>
                 </View>
@@ -180,18 +180,18 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, color: '#666', marginBottom: 4 },
   input: { fontSize: 16, color: '#333', paddingVertical: 6 },
   passwordRow: { flexDirection: 'row', alignItems: 'center' },
-  eyeBtn: { padding: 8, backgroundColor: '#2176FF', borderRadius: 6 },
+  eyeBtn: { padding: 8, backgroundColor: '#EC7928', borderRadius: 6 },
   eyeEmoji: { fontSize: 14, color: '#fff' },
 
   forgotBtnArea: { alignSelf: 'center', marginTop: 15 },
-  forgotText: { color: '#2176FF', fontSize: 14, fontWeight: '500' },
+  forgotText: { color: '#EC7928', fontSize: 14, fontWeight: '500' },
 
-  loginBtn: { backgroundColor: '#2176FF', padding: 16, borderRadius: 8, marginTop: 25, alignItems: 'center' },
-  disabledBtn: { backgroundColor: '#A0C4FF' },
+  loginBtn: { backgroundColor: '#EC7928', padding: 16, borderRadius: 8, marginTop: 25, alignItems: 'center' },
+  disabledBtn: { backgroundColor: '#ec7a285c' },
   loginBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 16, letterSpacing: 1 },
 
   dividerArea: { alignItems: 'center', marginTop: 25 },
-  phoneLink: { color: '#2176FF', fontWeight: '600' },
+  phoneLink: { color: '#EC7928', fontWeight: '600' },
 
   footerSection: { marginBottom: 10 },
   registerPanel: {
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     borderColor: '#EAECEF'
   },
   newAccountText: { fontSize: 16, color: '#333' },
-  registerBtn: { backgroundColor: '#2176FF', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 6 },
+  registerBtn: { backgroundColor: '#EC7928', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 6 },
   registerBtnText: { color: '#fff', fontWeight: 'bold' }
 });
 

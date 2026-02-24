@@ -10,9 +10,25 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  Modal,
+  FlatList,
+  Clipboard
 } from 'react-native';
-import { supabase } from '../../lib/supabase'; // Yolunu kontrol etmeyi unutma
+
+import { supabase } from '../../lib/supabase';
+
+const CITIES = [
+  "Hepsi", "Adana", "Adıyaman", "Afyonkarahisar", "Ağrı", "Aksaray", "Amasya", "Ankara", "Antalya", "Ardahan", "Artvin",
+  "Aydın", "Balıkesir", "Bartın", "Batman", "Bayburt", "Bilecik", "Bingöl", "Bitlis", "Bolu", "Burdur",
+  "Bursa", "Çanakkale", "Çankırı", "Çorum", "Denizli", "Diyarbakır", "Düzce", "Edirne", "Elazığ", "Erzincan",
+  "Erzurum", "Eskişehir", "Gaziantep", "Giresun", "Gümüşhane", "Hakkari", "Hatay", "Iğdır", "Isparta", "İstanbul",
+  "İzmir", "Kahramanmaraş", "Karabük", "Karaman", "Kars", "Kastamonu", "Kayseri", "Kırıkkale", "Kırklareli", "Kırşehir",
+  "Kilis", "Kocaeli", "Konya", "Kütahya", "Malatya", "Manisa", "Mardin", "Muğla", "Muş", "Nevşehir",
+  "Niğde", "Ordu", "Osmaniye", "Rize", "Sakarya", "Samsun", "Siirt", "Sinop", "Sivas", "Şanlıurfa",
+  "Şırnak", "Tekirdağ", "Tokat", "Trabzon", "Tunceli", "Uşak", "Van", "Yalova", "Yozgat", "Zonguldak", "Diğer"
+];
+const EDUCATION_LEVELS = ["Hepsi", "İlkokul", "Ortaokul", "Lise", "Önlisans", "Lisans", "Yüksek Lisans", "Doktora"];
 
 const CreateSurvey = ({ navigation }: any) => {
   const [title, setTitle] = useState('');
@@ -20,61 +36,77 @@ const CreateSurvey = ({ navigation }: any) => {
   const [googleFormLink, setGoogleFormLink] = useState('');
   const [completionCode, setCompletionCode] = useState('');
   const [loading, setLoading] = useState(false);
-  
-  // Hedef Kitle Seçimleri
-  const [gender, setGender] = useState('Hepsi'); // Hepsi, Kadın, Erkek
-  const [ageGroup, setAgeGroup] = useState('Hepsi'); // Hepsi, 18-24, 25-34, 35+
 
+  // Hedef Kitle State'leri
+  const [gender, setGender] = useState('Hepsi');
+  const [ageGroup, setAgeGroup] = useState('Hepsi');
+  const [targetCity, setTargetCity] = useState('Hepsi');
+  const [targetEducation, setTargetEducation] = useState('Hepsi');
+  const [targetOccupation, setTargetOccupation] = useState('');
+
+  // Modal Kontrolü
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalType, setModalType] = useState<'city' | 'education' | null>(null);
+
+  // Yapıştırma Fonksiyonu
+  const fetchCopiedText = async () => {
+    try {
+      const text = await Clipboard.getString();
+      setGoogleFormLink(text);
+    } catch (err) {
+      Alert.alert('Hata', 'Panodan metin alınamadı.');
+    }
+  };
   const handleSubmit = async () => {
-    // Basit doğrulama
     if (!title.trim() || !googleFormLink.trim() || !completionCode.trim()) {
-      Alert.alert('Eksik Bilgi', 'Lütfen anket başlığı, linki ve tamamlama kodunu doldurun.');
+      Alert.alert('Eksik Bilgi', 'Lütfen anket başlığı, linki ve onay kodunu doldurun.');
       return;
     }
 
     setLoading(true);
-
     try {
-      // Mevcut giriş yapmış kullanıcı bilgisini alalım
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Kullanıcı oturumu bulunamadı.');
 
-      if (!user) {
-        throw new Error('Kullanıcı oturumu bulunamadı. Lütfen tekrar giriş yapın.');
-      }
-
-      // Veritabanına kayıt işlemi
       const { error } = await supabase
         .from('surveys')
-        .insert([
-          {
-            title: title.trim(),
-            description: description.trim(),
-            survey_link: googleFormLink.trim(),
-            completion_code: completionCode.trim(),
-            target_gender: gender,
-            target_age_group: ageGroup,
-            creator_id: user.id,
-            status: 'active', // Varsayılan olarak aktif başlasın
-            platform: 'Google Forms'
-          }
-        ]);
+        .insert([{
+          title: title.trim(),
+          description: description.trim(),
+          survey_link: googleFormLink.trim(),
+          completion_code: completionCode.trim(),
+          target_gender: gender,
+          target_age_group: ageGroup,
+          target_city: targetCity,
+          target_education: targetEducation,
+          target_occupation: targetOccupation.trim(),
+          creator_id: user.id,
+          status: 'active',
+          platform: 'Google Forms',
+          reward_amount: 25,
+          estimated_time: 5
+        }]);
 
       if (error) throw error;
 
-      Alert.alert('Başarılı', 'Anketiniz oluşturuldu ve yayına alındı.', [
+      Alert.alert('Başarılı', 'Anketiniz oluşturuldu!', [
         { text: 'Tamam', onPress: () => navigation.goBack() }
       ]);
-
     } catch (error: any) {
-      Alert.alert('Hata', error.message || 'Anket oluşturulurken bir sorun oluştu.');
+      Alert.alert('Hata', error.message);
     } finally {
       setLoading(false);
     }
   };
 
+  const openModal = (type: 'city' | 'education') => {
+    setModalType(type);
+    setModalVisible(true);
+  };
+
   const SelectionButton = ({ label, current, setter }: any) => (
-    <TouchableOpacity 
-      style={[styles.chip, current === label && styles.chipActive]} 
+    <TouchableOpacity
+      style={[styles.chip, current === label && styles.chipActive]}
       onPress={() => setter(label)}
     >
       <Text style={[styles.chipText, current === label && styles.chipTextActive]}>{label}</Text>
@@ -89,52 +121,55 @@ const CreateSurvey = ({ navigation }: any) => {
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          
-          {/* 1. Kısım: Temel Bilgiler */}
+
           <View style={styles.card}>
             <Text style={styles.cardHeader}>Temel Bilgiler</Text>
-            
             <Text style={styles.label}>Araştırma Başlığı</Text>
-            <TextInput 
-              style={styles.input} 
-              placeholder="Örn: Parti yorumu" 
-              value={title}
-              onChangeText={setTitle}
-            />
+            <TextInput style={styles.input} placeholder="Başlık" value={title} onChangeText={setTitle} />
 
             <Text style={styles.label}>Kısa Açıklama</Text>
-            <TextInput 
-              style={[styles.input, styles.textArea]} 
-              placeholder="Araştırma hakkında detaylı bilgi..." 
-              multiline 
-              numberOfLines={4}
-              value={description}
-              onChangeText={setDescription}
-            />
+            <TextInput style={[styles.input, styles.textArea]} placeholder="Detaylar..." multiline value={description} onChangeText={setDescription} />
           </View>
 
-          {/* 2. Kısım: Hedef Kitle */}
           <View style={styles.card}>
-            <Text style={styles.label}>Hedef Cinsiyet</Text>
+            <Text style={styles.cardHeader}>Hedef Kitle (Filtreler)</Text>
+
+            <Text style={styles.label}>Cinsiyet</Text>
             <View style={styles.chipGroup}>
               {['Hepsi', 'Kadın', 'Erkek'].map((item) => (
                 <SelectionButton key={item} label={item} current={gender} setter={setGender} />
               ))}
             </View>
 
-            <Text style={[styles.label, { marginTop: 15 }]}>Hedef Yaş Grubu</Text>
+            <Text style={[styles.label, { marginTop: 15 }]}>Yaş Grubu</Text>
             <View style={styles.chipGroup}>
               {['Hepsi', '18-24', '25-34', '35+'].map((item) => (
                 <SelectionButton key={item} label={item} current={ageGroup} setter={setAgeGroup} />
               ))}
             </View>
+
+            <Text style={[styles.label, { marginTop: 15 }]}>Şehir</Text>
+            <TouchableOpacity style={styles.selector} onPress={() => openModal('city')}>
+              <Text style={styles.selectorText}>{targetCity}</Text>
+            </TouchableOpacity>
+
+            <Text style={[styles.label, { marginTop: 15 }]}>Eğitim Seviyesi</Text>
+            <TouchableOpacity style={styles.selector} onPress={() => openModal('education')}>
+              <Text style={styles.selectorText}>{targetEducation}</Text>
+            </TouchableOpacity>
+
+            <Text style={[styles.label, { marginTop: 15 }]}>Meslek (Filtrelemek için yazın)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Örn: Mühendis (Herkes için boş bırakın)"
+              value={targetOccupation}
+              onChangeText={setTargetOccupation}
+            />
           </View>
 
-          {/* 3. Kısım: Anket Bağlantısı */}
           <View style={styles.card}>
-            <Text style={styles.cardHeader}>Anket Bağlantısı</Text>
-            
-           <Text style={styles.label}>Google Form Linki</Text>
+           <Text style={styles.cardHeader}>Anket Bağlantısı</Text>
+            <Text style={styles.label}>Google Form Linki *</Text>
             <View style={styles.linkRow}>
               <TextInput 
                 style={[styles.input, { flex: 1, marginBottom: 0 }]} 
@@ -142,32 +177,47 @@ const CreateSurvey = ({ navigation }: any) => {
                 value={googleFormLink}
                 onChangeText={setGoogleFormLink}
               />
-              <TouchableOpacity style={styles.pasteBtn}>
+              <TouchableOpacity style={styles.pasteBtn} onPress={fetchCopiedText}>
                 <Text style={styles.pasteBtnText}>📋 Yapıştır</Text>
               </TouchableOpacity>
             </View>
-
-            <Text style={[styles.label, { marginTop: 15 }]}>Tamamlama Kodu (Sabit)</Text>
-            <Text style={styles.subLabel}>Anketin sonundaki onay sayfasına yazdığınız kodu buraya da girin.</Text>
-            <TextInput 
-              style={styles.input} 
-              placeholder="Örn: KAHVE2026" 
-              value={completionCode}
-              onChangeText={setCompletionCode}
-              autoCapitalize="characters"
-            />
+            <Text style={styles.label}>Onay Kodu</Text>
+            <TextInput style={styles.input} placeholder="KAHVE2026" value={completionCode} onChangeText={setCompletionCode} autoCapitalize="characters" />
           </View>
 
-          <TouchableOpacity 
-            style={[styles.submitBtn, loading && { backgroundColor: '#ccc' }]} 
-            onPress={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>ANKETİ OLUŞTUR</Text>}
+          <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={loading}>
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>ANKETİ YAYINLA</Text>}
           </TouchableOpacity>
 
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Seçim Modalı */}
+      <Modal visible={modalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{modalType === 'city' ? 'Şehir Seç' : 'Eğitim Seç'}</Text>
+            <FlatList
+              data={modalType === 'city' ? CITIES : EDUCATION_LEVELS}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.modalItem}
+                  onPress={() => {
+                    modalType === 'city' ? setTargetCity(item) : setTargetEducation(item);
+                    setModalVisible(false);
+                  }}
+                >
+                  <Text style={styles.modalItemText}>{item}</Text>
+                </TouchableOpacity>
+              )}
+            />
+            <TouchableOpacity style={styles.closeBtn} onPress={() => setModalVisible(false)}>
+              <Text style={styles.closeBtnText}>Kapat</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -177,22 +227,31 @@ const styles = StyleSheet.create({
   header: { padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#EEE' },
   headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#1A1A1A' },
   scrollContent: { padding: 15 },
-  card: { backgroundColor: '#fff', borderRadius: 15, padding: 15, marginBottom: 20, borderWidth: 1, borderColor: '#EAECEF' },
+  card: { backgroundColor: '#fff', borderRadius: 15, padding: 15, marginBottom: 20, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 },
   cardHeader: { fontSize: 16, fontWeight: 'bold', color: '#2C3E50', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#F0F0F0', paddingBottom: 5 },
   label: { fontSize: 13, fontWeight: '600', color: '#666', marginBottom: 8 },
-  subLabel: { fontSize: 11, color: '#999', marginBottom: 8 },
   input: { backgroundColor: '#F8F9FB', borderWidth: 1, borderColor: '#EAECEF', borderRadius: 10, padding: 12, fontSize: 15, marginBottom: 15 },
-  textArea: { height: 100, textAlignVertical: 'top' },
+  textArea: { height: 80, textAlignVertical: 'top' },
   chipGroup: { flexDirection: 'row', flexWrap: 'wrap' },
   chip: { backgroundColor: '#E9ECEF', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 20, marginRight: 10, marginBottom: 10 },
-  chipActive: { backgroundColor: '#3498DB' },
+  chipActive: { backgroundColor: '#EC7928' },
   chipText: { color: '#666', fontWeight: '500' },
   chipTextActive: { color: '#fff' },
-  linkRow: { flexDirection: 'row', alignItems: 'center' },
-  pasteBtn: { backgroundColor: '#3498DB', padding: 12, borderRadius: 10, marginLeft: 10 },
-  pasteBtnText: { color: '#fff', fontWeight: 'bold' },
-  submitBtn: { backgroundColor: '#007AFF', padding: 18, borderRadius: 12, alignItems: 'center', marginBottom: 30 },
-  submitBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 }
+  selector: { backgroundColor: '#F8F9FB', borderWidth: 1, borderColor: '#EAECEF', borderRadius: 10, padding: 12, marginBottom: 15 },
+  selectorText: { fontSize: 15, color: '#333' },
+  submitBtn: { backgroundColor: '#EC7928', padding: 18, borderRadius: 12, alignItems: 'center', marginBottom: 30 },
+  submitBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, height: '70%', padding: 20 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' },
+  modalItem: { paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#EEE' },
+  modalItemText: { fontSize: 16, color: '#333', textAlign: 'center' },
+  closeBtn: { marginTop: 10, padding: 15, alignItems: 'center' },
+  closeBtnText: { color: '#EC7928', fontWeight: 'bold' },
+  linkRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
+  pasteBtn: { backgroundColor: '#EC7928', padding: 14, borderRadius: 10, marginLeft: 5 },
+  pasteBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
 });
 
 export default CreateSurvey;

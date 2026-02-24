@@ -6,7 +6,7 @@ const Welcome = ({ navigation }: any) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Poltem Akademi</Text>
+        <Text style={styles.title}>PolTem Anket</Text>
         <Text style={styles.subtitle}>Geleceğin eğitim platformuna hoş geldiniz.</Text>
         
         <View style={styles.buttonContainer}>
@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#007bff',
+    color: '#EC7928',
     marginBottom: 10,
   },
   subtitle: {
@@ -56,15 +56,14 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: 'row',
-    // Eğer butonlar birbirine yapışık çıkarsa buradaki gap: 15 kalsın. 
-    // Eğer hata verirse gap yerine butonlara marginHorizontal: 7.5 verebilirsin.
+
     gap: 15, 
   },
   button: {
     paddingVertical: 12,
     paddingHorizontal: 25,
     borderRadius: 8,
-    backgroundColor: '#007bff',
+    backgroundColor: '#EC7928',
     elevation: 3, 
     shadowColor: '#000', 
     shadowOffset: { width: 0, height: 2 },
