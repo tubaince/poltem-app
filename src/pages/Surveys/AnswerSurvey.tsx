@@ -67,7 +67,6 @@ const AnswerSurvey = ({ route, navigation }: any) => {
         
         if (!user) throw new Error("Kullanıcı oturumu bulunamadı.");
 
-        // survey_responses yerine güncel submissions tablosuna kayıt ekliyoruz
         const { error } = await supabase
           .from('submissions') 
           .insert([
@@ -75,16 +74,16 @@ const AnswerSurvey = ({ route, navigation }: any) => {
               survey_id: survey.id, 
               user_id: user.id, 
               unique_id: uniqueId,
-              status: 'pending', // SQL'de oluşturduğumuz ENUM tipine uygun
+              status: 'pending', 
               created_at: new Date() 
             }
           ]);
 
         if (error) throw error;
 
-        Alert.alert('Tebrikler!', 'Anket başarıyla tamamlandı. Kaydınız incelemeye alındı.', [
-          { text: 'Tamam', onPress: () => navigation.navigate('Home') }
-        ]);
+        // --- GÜNCELLEME: Başarılı durumda Completed sayfasına yönlendir ---
+        navigation.replace('Completed');
+
       } catch (error: any) {
         console.error(error);
         Alert.alert('Hata', 'Kayıt oluşturulurken bir sorun oluştu: ' + error.message);
@@ -204,6 +203,55 @@ const AnswerSurvey = ({ route, navigation }: any) => {
             )}
           </TouchableOpacity>
         </View>
+
+        {/* PAYLAŞIM BÖLÜMÜ */}
+        <View style={styles.shareSection}>
+          <View style={styles.shareHeaderRow}>
+            <Text style={styles.shareSectionIcon}>📤</Text>
+            <Text style={styles.shareTitle}>Araştırmayı Paylaş</Text>
+          </View>
+          <Text style={styles.shareSubtext}>
+            Sevdikleriniz de cevaplarıyla değer yaratarak para kazansınlar!
+          </Text>
+
+          <TouchableOpacity style={[styles.shareBtn, { backgroundColor: '#25D366' }]}>
+            <Text style={styles.shareBtnText}>WhatsApp</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.shareBtn, { backgroundColor: '#000000' }]}>
+            <Text style={styles.shareBtnText}>X (Twitter)</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.shareBtn, { backgroundColor: '#0077B5' }]}>
+            <Text style={styles.shareBtnText}>LinkedIn</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.shareBtn, { backgroundColor: '#1877F2' }]}>
+            <Text style={styles.shareBtnText}>Facebook</Text>
+          </TouchableOpacity>
+
+          <View style={styles.linkCard}>
+            <Text style={styles.linkTitleText}>Araştırma Linki</Text>
+            <Text style={styles.linkUrlText} numberOfLines={2}>
+              {survey.survey_link || 'https://www.youreply.com.tr/arastirma/...'}
+            </Text>
+            <View style={styles.linkActionRow}>
+              <TouchableOpacity 
+                style={styles.copyLinkBtn} 
+                onPress={() => {
+                  Clipboard.setString(survey.survey_link || '');
+                  Alert.alert('Başarılı', 'Link kopyalandı.');
+                }}
+              >
+                <Text style={styles.copyLinkBtnText}>📋 KOPYALA</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.directShareBtn}>
+                <Text style={styles.directShareBtnText}>📤 PAYLAŞ</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </ScrollView>
 
       <Modal visible={showModal} animationType="fade" transparent={true}>
@@ -277,6 +325,24 @@ const styles = StyleSheet.create({
   codeInput: { borderWidth: 1, borderColor: '#DDD', backgroundColor: '#F9F9F9', padding: 15, borderRadius: 10, marginTop: 15, textAlign: 'center', fontSize: 20, fontWeight: 'bold' },
   finishBtn: { backgroundColor: '#2ECC71', padding: 15, borderRadius: 10, alignItems: 'center', marginTop: 15 },
   finishBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
+  
+  // Paylaşım Bölümü Stilleri
+  shareSection: { backgroundColor: '#fff', borderRadius: 15, padding: 20, marginTop: 10, marginBottom: 30, elevation: 3 },
+  shareHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  shareSectionIcon: { fontSize: 20, marginRight: 10 },
+  shareTitle: { fontSize: 18, fontWeight: 'bold', color: '#2C3E50' },
+  shareSubtext: { fontSize: 14, color: '#95A5A6', marginBottom: 20 },
+  shareBtn: { paddingVertical: 12, borderRadius: 10, alignItems: 'center', marginBottom: 10 },
+  shareBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
+  linkCard: { backgroundColor: '#F8F9FA', padding: 15, borderRadius: 10, marginTop: 10, borderWidth: 1, borderColor: '#EEE' },
+  linkTitleText: { fontSize: 14, fontWeight: 'bold', color: '#BDC3C7', marginBottom: 8 },
+  linkUrlText: { fontSize: 13, color: '#7F8C8D', marginBottom: 15 },
+  linkActionRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  copyLinkBtn: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#3498DB', marginRight: 10 },
+  copyLinkBtnText: { color: '#3498DB', fontWeight: 'bold', fontSize: 13 },
+  directShareBtn: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 10, borderRadius: 8, backgroundColor: '#3498DB' },
+  directShareBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
+
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 25 },
   modalContent: { backgroundColor: '#fff', borderRadius: 20, padding: 20 },
   modalHeader: { fontSize: 20, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' },

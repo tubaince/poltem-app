@@ -186,7 +186,7 @@ const CreateSurvey = ({ navigation }: any) => {
           </View>
 
           <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>ANKETİ YAYINLA</Text>}
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>ANKETİ ONAY İÇİN İLET</Text>}
           </TouchableOpacity>
 
         </ScrollView>

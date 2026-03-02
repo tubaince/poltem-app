@@ -16,6 +16,9 @@ import VerifyOTP from './pages/Auth/VerifyOTP';
 import Profile from './pages/Auth/Profile';
 import ResetPassword from './pages/Auth/ResetPassword';
 import AnswerSurvey from './pages/Surveys/AnswerSurvey';
+import ParticipatedSurveys from './pages/Surveys/ParticipatedSurveys';
+import Payments from './pages/Pay/Payments';
+import Completed from './pages/Surveys/Completed';
 
 const Stack = createStackNavigator();
 
@@ -41,6 +44,9 @@ function App() {
         <Stack.Screen name="VerifyOTP" component={VerifyOTP} />
         <Stack.Screen name="ResetPassword" component={ResetPassword} />
         <Stack.Screen name="AnswerSurvey" component={AnswerSurvey} />
+        <Stack.Screen name="ParticipatedSurveys" component={ParticipatedSurveys} />
+        <Stack.Screen name="Payments" component={Payments} />
+        <Stack.Screen name="Completed" component={Completed} />
       </Stack.Navigator>
     </NavigationContainer>
   );
