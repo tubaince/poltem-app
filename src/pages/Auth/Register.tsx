@@ -102,7 +102,7 @@ const Register = ({ navigation }: any) => {
       if (error) throw error;
       if (data) {
         Alert.alert('Başarılı', 'Hesabınız oluşturuldu.');
-        navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+        return;
       }
     } catch (err: any) {
       Alert.alert('Kayıt Hatası', err.message);

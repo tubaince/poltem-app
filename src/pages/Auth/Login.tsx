@@ -54,8 +54,8 @@ const Login = ({ navigation }: any) => {
       }
 
       if (data?.session) {
-        // Giriş başarılı, ana sayfaya yönlendir
-        navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+        // Oturum acilinca App.tsx auth-gate otomatik olarak Home'a gecirir.
+        return;
       }
 
     } catch (error: any) {

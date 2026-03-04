@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,42 +10,18 @@ import {
   ScrollView,
   SafeAreaView,
   Modal,
-  FlatList
+  FlatList,
+  Animated,
+  Dimensions
 } from 'react-native';
 import { supabase } from '../../lib/supabase';
 
-// Sabit Veriler
-const TURKISH_BANKS = [
-  "Akbank", "Denizbank", "Garanti BBVA", "Halkbank", "Kuveyt Türk",
-  "QNB Finansbank", "Türkiye İş Bankası", "Vakıfbank", "Yapı Kredi", "Ziraat Bankası", "Diğer"
-].sort();
-
-const CITIES = [
-  "Adana", "Adıyaman", "Afyonkarahisar", "Ağrı", "Aksaray", "Amasya", "Ankara", "Antalya", "Ardahan", "Artvin",
-  "Aydın", "Balıkesir", "Bartın", "Batman", "Bayburt", "Bilecik", "Bingöl", "Bitlis", "Bolu", "Burdur",
-  "Bursa", "Çanakkale", "Çankırı", "Çorum", "Denizli", "Diyarbakır", "Düzce", "Edirne", "Elazığ", "Erzincan",
-  "Erzurum", "Eskişehir", "Gaziantep", "Giresun", "Gümüşhane", "Hakkari", "Hatay", "Iğdır", "Isparta", "İstanbul",
-  "İzmir", "Kahramanmaraş", "Karabük", "Karaman", "Kars", "Kastamonu", "Kayseri", "Kırıkkale", "Kırklareli", "Kırşehir",
-  "Kilis", "Kocaeli", "Konya", "Kütahya", "Malatya", "Manisa", "Mardin", "Muğla", "Muş", "Nevşehir",
-  "Niğde", "Ordu", "Osmaniye", "Rize", "Sakarya", "Samsun", "Siirt", "Sinop", "Sivas", "Şanlıurfa",
-  "Şırnak", "Tekirdağ", "Tokat", "Trabzon", "Tunceli", "Uşak", "Van", "Yalova", "Yozgat", "Zonguldak", "Diğer"
-].sort();
-
-const EDUCATION_LEVELS = [
-  "İlkokul", "Ortaokul", "Lise", "Önlisans", "Lisans", "Yüksek Lisans", "Doktora"
-];
-
-const EMPLOYMENT_STATUSES = [
-  "Çalışıyor",
-  "Çalışmıyor",
-  "Belirtmek istemiyorum"
-];
-
-const OCCUPATIONS = [
-  "Akademisyen", "Bankacı", "Doktor", "Eczacı", "Esnaf", "Finans Uzmanı", 
-  "Grafik Tasarımcı", "Hemşire", "İnsan Kaynakları", "İşçi", "Mimar", "Muhasebeci", 
-  "Mühendis", "Öğretmen", "Öğrenci", "Satış Temsilcisi", "Yazılımcı", "Diğer"
-].sort();
+// Sabit Veriler (Aynı kaldı)
+const TURKISH_BANKS = ["Akbank", "Denizbank", "Garanti BBVA", "Halkbank", "Kuveyt Türk", "QNB Finansbank", "Türkiye İş Bankası", "Vakıfbank", "Yapı Kredi", "Ziraat Bankası", "Diğer"].sort();
+const CITIES = ["Adana", "Adıyaman", "Afyonkarahisar", "Ağrı", "Aksaray", "Amasya", "Ankara", "Antalya", "Ardahan", "Artvin", "Aydın", "Balıkesir", "Bartın", "Batman", "Bayburt", "Bilecik", "Bingöl", "Bitlis", "Bolu", "Burdur", "Bursa", "Çanakkale", "Çankırı", "Çorum", "Denizli", "Diyarbakır", "Düzce", "Edirne", "Elazığ", "Erzincan", "Erzurum", "Eskişehir", "Gaziantep", "Giresun", "Gümüşhane", "Hakkari", "Hatay", "Iğdır", "Isparta", "İstanbul", "İzmir", "Kahramanmaraş", "Karabük", "Karaman", "Kars", "Kastamonu", "Kayseri", "Kırıkkale", "Kırklareli", "Kırşehir", "Kilis", "Kocaeli", "Konya", "Kütahya", "Malatya", "Manisa", "Mardin", "Muğla", "Muş", "Nevşehir", "Niğde", "Ordu", "Osmaniye", "Rize", "Sakarya", "Samsun", "Siirt", "Sinop", "Sivas", "Şanlıurfa", "Şırnak", "Tekirdağ", "Tokat", "Trabzon", "Tunceli", "Uşak", "Van", "Yalova", "Yozgat", "Zonguldak", "Diğer"].sort();
+const EDUCATION_LEVELS = ["İlkokul", "Ortaokul", "Lise", "Önlisans", "Lisans", "Yüksek Lisans", "Doktora"];
+const EMPLOYMENT_STATUSES = ["Çalışıyor", "Çalışmıyor", "Belirtmek istemiyorum"];
+const OCCUPATIONS = ["Akademisyen", "Bankacı", "Doktor", "Eczacı", "Esnaf", "Finans Uzmanı", "Grafik Tasarımcı", "Hemşire", "İnsan Kaynakları", "İşçi", "Mimar", "Muhasebeci", "Mühendis", "Öğretmen", "Öğrenci", "Satış Temsilcisi", "Yazılımcı", "Diğer"].sort();
 
 interface ProfileData {
   id: string;
@@ -60,6 +36,7 @@ interface ProfileData {
   city: string;
   education_level: string;
   occupation: string;
+  video_conference_optin: boolean;
 }
 
 const Profile = ({ navigation }: any) => {
@@ -78,12 +55,25 @@ const Profile = ({ navigation }: any) => {
     birth_date: '',
     city: '',
     education_level: '',
-    occupation: ''
+    occupation: '',
+    video_conference_optin: false
   });
+
+  // Switch Animasyonu Değeri
+  const animatedValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     fetchProfile();
   }, []);
+
+  // Form verisi değiştikçe animasyonu güncelle
+  useEffect(() => {
+    Animated.timing(animatedValue, {
+      toValue: formData.video_conference_optin ? 1 : 0,
+      duration: 250,
+      useNativeDriver: false,
+    }).start();
+  }, [formData.video_conference_optin]);
 
   async function fetchProfile() {
     try {
@@ -111,7 +101,8 @@ const Profile = ({ navigation }: any) => {
           birth_date: data.birth_date || '',
           city: data.city || '',
           education_level: data.education_level || '',
-          occupation: data.occupation || ''
+          occupation: data.occupation || '',
+          video_conference_optin: data.video_conference_optin || false
         });
       }
     } catch (error) {
@@ -150,6 +141,33 @@ const Profile = ({ navigation }: any) => {
     }
   }
 
+  // --- CUSTOM SWITCH COMPONENT (Render içinde tanımlandı) ---
+  const renderCustomSwitch = () => {
+    const moveThumb = animatedValue.interpolate({
+      inputRange: [0, 1],
+      outputRange: [2, 28]
+    });
+
+    const trackColor = animatedValue.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['#E0E0E0', '#EC7928']
+    });
+
+    return (
+      <TouchableOpacity 
+        activeOpacity={0.9} 
+        onPress={() => setFormData(prev => ({ ...prev, video_conference_optin: !prev.video_conference_optin }))}
+      >
+        <Animated.View style={[styles.switchTrack, { backgroundColor: trackColor }]}>
+          <Animated.Text style={[styles.switchLabel, formData.video_conference_optin ? { left: 7 } : { right: 7 }]}>
+            {formData.video_conference_optin ? 'ON' : 'OFF'}
+          </Animated.Text>
+          <Animated.View style={[styles.switchThumb, { transform: [{ translateX: moveThumb }] }]} />
+        </Animated.View>
+      </TouchableOpacity>
+    );
+  };
+
   const renderModalContent = () => {
     let data: string[] = [];
     let title = "";
@@ -163,7 +181,6 @@ const Profile = ({ navigation }: any) => {
       default: return null;
     }
 
-    // ÖZEL DURUM: ÇALIŞMA DURUMU VE MESLEK SEÇİMİ
     if (modalType === 'occupation') {
       return (
         <View style={styles.modalOverlay}>
@@ -174,11 +191,9 @@ const Profile = ({ navigation }: any) => {
                 <Text style={styles.closeText}>Kapat</Text>
               </TouchableOpacity>
             </View>
-            
             <ScrollView showsVerticalScrollIndicator={false}>
               {EMPLOYMENT_STATUSES.map((status) => {
                 const isSelected = formData.occupation === status || (status === "Çalışıyor" && OCCUPATIONS.includes(formData.occupation || ""));
-                
                 return (
                   <View key={status}>
                     <TouchableOpacity
@@ -197,8 +212,6 @@ const Profile = ({ navigation }: any) => {
                         {isSelected && <View style={styles.radioInner} />}
                       </View>
                     </TouchableOpacity>
-
-                    {/* KOŞULLU MESLEK LİSTESİ */}
                     {status === "Çalışıyor" && isSelected && (
                       <View style={styles.jobSubList}>
                         <Text style={styles.jobSubTitle}>Mesleğinizi Seçiniz:</Text>
@@ -228,7 +241,6 @@ const Profile = ({ navigation }: any) => {
       );
     }
 
-    // DİĞER STANDART LİSTELER (ŞEHİR, BANKA VB.)
     return (
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
@@ -261,6 +273,14 @@ const Profile = ({ navigation }: any) => {
     );
   };
 
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#EC7928" />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerRow}>
@@ -271,7 +291,7 @@ const Profile = ({ navigation }: any) => {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollPadding}>
+      <ScrollView contentContainerStyle={styles.scrollPadding} showsVerticalScrollIndicator={false}>
         <Text style={styles.subText}>Hedef kitle analizi ve ödemeler için bilgilerinizi eksiksiz doldurunuz.</Text>
 
         <View style={styles.section}>
@@ -285,7 +305,6 @@ const Profile = ({ navigation }: any) => {
               placeholder="Ad Soyad"
             />
           </View>
-
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Cinsiyet *</Text>
             <View style={styles.genderContainer}>
@@ -300,7 +319,6 @@ const Profile = ({ navigation }: any) => {
               ))}
             </View>
           </View>
-
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Doğum Tarihi *</Text>
             <TextInput
@@ -315,28 +333,24 @@ const Profile = ({ navigation }: any) => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Demografik Bilgiler</Text>
-          
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Şehir *</Text>
             <TouchableOpacity style={styles.input} onPress={() => setModalType('city')}>
               <Text style={{ color: formData.city ? '#333' : '#999' }}>{formData.city || "Şehir seçiniz"}</Text>
             </TouchableOpacity>
           </View>
-
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Eğitim Düzeyi *</Text>
             <TouchableOpacity style={styles.input} onPress={() => setModalType('education')}>
               <Text style={{ color: formData.education_level ? '#333' : '#999' }}>{formData.education_level || "Eğitim düzeyi seçiniz"}</Text>
             </TouchableOpacity>
           </View>
-
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Çalışma Durumu *</Text>
             <TouchableOpacity style={styles.input} onPress={() => setModalType('occupation')}>
               <Text style={{ color: formData.occupation ? '#333' : '#999' }}>{formData.occupation || "Seçiniz"}</Text>
             </TouchableOpacity>
           </View>
-
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Telefon *</Text>
             <TextInput
@@ -346,6 +360,20 @@ const Profile = ({ navigation }: any) => {
               keyboardType="phone-pad"
               placeholder="05xx xxx xx xx"
             />
+          </View>
+        </View>
+
+        {/* YENI EKLENEN BÖLÜM: Araştırma Tercihleri */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Araştırma Tercihleri</Text>
+          <View style={styles.optinContainer}>
+            <View style={{ flex: 1, paddingRight: 10 }}>
+              <Text style={styles.optinTitle}>Görüntülü Görüşme Katılımı</Text>
+              <Text style={styles.optinDescription}>
+                Mülakat şeklinde yapılan sesli görüntülü araştırmalara katılır mısınız? (Ses ve görüntü kaydınız alınır)
+              </Text>
+            </View>
+            {renderCustomSwitch()}
           </View>
         </View>
 
@@ -421,11 +449,47 @@ const styles = StyleSheet.create({
   radioOuter: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#ccc', justifyContent: 'center', alignItems: 'center' },
   radioOuterSelected: { borderColor: '#EC7928' },
   radioInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#EC7928' },
-
   jobSubList: { backgroundColor: '#F0F2F5', paddingLeft: 15, borderRadius: 10, marginTop: 5, marginBottom: 10, paddingBottom: 10 },
   jobSubTitle: { fontSize: 13, fontWeight: 'bold', color: '#EC7928', marginTop: 15, marginBottom: 5 },
   subSelectionItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, paddingRight: 15, borderBottomWidth: 0.5, borderBottomColor: '#D1D1D1' },
-  subSelectionText: { fontSize: 15, color: '#444' }
+  subSelectionText: { fontSize: 15, color: '#444' },
+
+  // --- OPTIN & SWITCH STYLES ---
+  optinContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  optinTitle: { fontSize: 14, fontWeight: '700', color: '#333', marginBottom: 4 },
+  optinDescription: { fontSize: 12, color: '#666', lineHeight: 18 },
+  switchTrack: {
+    width: 56,
+    height: 28,
+    borderRadius: 14,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  switchThumb: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FFF',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  switchLabel: {
+    position: 'absolute',
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: '#FFF',
+  }
 });
 
 export default Profile;

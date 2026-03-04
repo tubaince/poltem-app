@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { supabase } from '../lib/supabase'; // Yolunu projenize göre kontrol edin
 
-export const useHomeData = (navigation: any) => {
+export const useHomeData = (_navigation: any) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isResearcher, setIsResearcher] = useState<boolean>(false);
@@ -111,8 +111,10 @@ export const useHomeData = (navigation: any) => {
   }, []);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      Alert.alert('Hata', 'Cikis yapilirken bir sorun olustu.');
+    }
   };
 
   useEffect(() => {
