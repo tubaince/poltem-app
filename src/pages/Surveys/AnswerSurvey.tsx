@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -15,13 +15,23 @@ import {
 import Clipboard from '@react-native-clipboard/clipboard';
 import { supabase } from '../../lib/supabase';
 
+const buildShortParticipantCode = (seed: string) => {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  }
+
+  const sixDigit = (hash % 900000) + 100000;
+  return `AC-${sixDigit.toString().padStart(6, '0')}`;
+};
+
 const AnswerSurvey = ({ route, navigation }: any) => {
   const [step, setStep] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [inputCode, setInputCode] = useState('');
   const [issubmitting, setIsSubmitting] = useState(false);
-  
-  const [uniqueId] = useState(`AC-${Math.floor(100000 + Math.random() * 900000)}`);
+  const [uniqueId, setUniqueId] = useState('');
+  const [isCodeLoading, setIsCodeLoading] = useState(true);
 
   const survey = route.params?.survey || { 
     id: '', 
@@ -31,9 +41,61 @@ const AnswerSurvey = ({ route, navigation }: any) => {
     completion_code: '' 
   };
 
+  useEffect(() => {
+    initializeUniqueId();
+  }, []);
+
+  const initializeUniqueId = async () => {
+    setIsCodeLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Kullanıcı oturumu bulunamadı.');
+
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('participant_code')
+        .eq('id', user.id)
+        .single();
+
+      if (!profileError && profileData?.participant_code) {
+        setUniqueId(profileData.participant_code);
+        return;
+      }
+
+      const { data, error } = await supabase.rpc('ensure_my_participant_code');
+      if (error) {
+        // Fallback: SQL migration uygulanmadıysa ekranı bloklama.
+        if (error.code === 'PGRST202') {
+          const fallbackCode = buildShortParticipantCode(user.id);
+          setUniqueId(fallbackCode);
+          return;
+        }
+        throw error;
+      }
+
+      if (!data) {
+        const fallbackCode = buildShortParticipantCode(user.id);
+        setUniqueId(fallbackCode);
+        return;
+      }
+
+      setUniqueId(data);
+    } catch (error: any) {
+      console.error(error);
+      Alert.alert('Hata', 'Kullanıcı kodu hazırlanırken bir sorun oluştu: ' + error.message);
+    } finally {
+      setIsCodeLoading(false);
+    }
+  };
+
   const copyToClipboard = () => {
     if (step < 2) {
       Alert.alert('Uyarı', 'Lütfen önce katılım beyanını onaylayın.');
+      return;
+    }
+
+    if (!uniqueId || isCodeLoading) {
+      Alert.alert('Uyarı', 'Kullanıcı kodunuz henüz hazırlanmadı. Lütfen tekrar deneyin.');
       return;
     }
     
@@ -66,6 +128,7 @@ const AnswerSurvey = ({ route, navigation }: any) => {
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) throw new Error("Kullanıcı oturumu bulunamadı.");
+        if (!uniqueId) throw new Error("Kalıcı kullanıcı kodu bulunamadı.");
 
         const { error } = await supabase
           .from('submissions') 
@@ -147,9 +210,13 @@ const AnswerSurvey = ({ route, navigation }: any) => {
             style={styles.idContainer} 
             onPress={copyToClipboard}
             activeOpacity={0.7}
-            disabled={step < 2}
+            disabled={step < 2 || isCodeLoading || !uniqueId}
           >
-            <Text style={styles.idText}>{uniqueId}</Text>
+            {isCodeLoading ? (
+              <ActivityIndicator color="#EC7928" />
+            ) : (
+              <Text style={styles.idText}>{uniqueId || 'Kod bekleniyor...'}</Text>
+            )}
             <View style={styles.copyBadge}>
                 <Text style={styles.copyBadgeText}>KOPYALA</Text>
             </View>

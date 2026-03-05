@@ -17,7 +17,6 @@ import {
 } from 'react-native';
 import { supabase } from '../../lib/supabase';
 
-
 const InfoModal = ({ visible, title, content, onClose }: any) => (
   <Modal visible={visible} animationType="fade" transparent={true}>
     <View style={styles.modalOverlay}>
@@ -62,17 +61,14 @@ const Register = ({ navigation }: any) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalData, setModalData] = useState({ title: '', content: '' });
 
-
-  // En az 8 Karakter, 1 Büyük, 1 Küçük, 1 Rakam ve Özel Karakterleri destekler
   const isPasswordValid = (pass: string) => {
+    // Karmaşık şifre kontrolü yerine test aşamasında sadece uzunluk kontrolü yapmak istersen regex'i değiştirebilirsin
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&.])[A-Za-z\d@$!%*?&.]{8,}$/;
-    // Eğer özel karakter zorunlu olmasın derseler aşadaki
-    // const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/; 
     return passwordRegex.test(pass);
   };
 
   const handleRegister = async () => {
-    if (!fullName || !email || !password) {
+    if (!fullName.trim() || !email.trim() || !password) {
       Alert.alert('Hata', 'Lütfen tüm alanları doldurun.');
       return;
     }
@@ -92,17 +88,45 @@ const Register = ({ navigation }: any) => {
 
     setLoading(true);
     try {
-      const finalEmail = email.includes('@') ? email.trim() : `${email.trim()}@poltemakademi.com`;
+      const trimmedEmail = email.trim();
+      const finalEmail = trimmedEmail.includes('@') ? trimmedEmail : `${trimmedEmail}@poltemakademi.com`;
+
       const { data, error } = await supabase.auth.signUp({
         email: finalEmail,
         password: password,
-        options: { data: { full_name: fullName } }
+        options: { 
+          data: { full_name: fullName.trim() } 
+        }
       });
 
-      if (error) throw error;
-      if (data) {
-        Alert.alert('Başarılı', 'Hesabınız oluşturuldu.');
+      if (error) {
+        if (error.message.includes('rate limit')) {
+          Alert.alert(
+            'Limit Aşıldı', 
+            'Çok fazla kayıt denemesi yapıldı. Lütfen e-posta onayını panelden kapatın veya bir süre bekleyin.'
+          );
+        } else {
+          throw error;
+        }
         return;
+      }
+
+      if (data?.user) {
+        Alert.alert(
+          'Başarılı', 
+          'Hesabınız oluşturuldu.',
+          [{ 
+            text: 'Tamam', 
+            onPress: () => {
+              // Navigasyon hatasını çözmek için goBack kullanıyoruz
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate('Login'); // Alternatif rota
+              }
+            } 
+          }]
+        );
       }
     } catch (err: any) {
       Alert.alert('Kayıt Hatası', err.message);
@@ -142,7 +166,13 @@ const Register = ({ navigation }: any) => {
             </View>
             <View style={[styles.cardItem, styles.borderTop]}>
               <Text style={styles.label}>E-posta</Text>
-              <TextInput style={styles.input} placeholder="eposta" value={email} onChangeText={setEmail} autoCapitalize="none" />
+              <TextInput 
+                style={styles.input} 
+                placeholder="E-posta adresi giriniz." 
+                value={email} 
+                onChangeText={setEmail} 
+                autoCapitalize="none" 
+              />
             </View>
             <View style={[styles.cardItem, styles.borderTop]}>
               <Text style={styles.label}>Şifre</Text>
@@ -192,19 +222,9 @@ const Register = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  footerLink: {
-    marginTop: 20,
-    alignItems: 'center',
-    paddingBottom: 20,
-  },
-  footerText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  footerLinkText: {
-    color: '#EC7928',
-    fontWeight: 'bold',
-  },
+  footerLink: { marginTop: 20, alignItems: 'center', paddingBottom: 20 },
+  footerText: { fontSize: 14, color: '#666' },
+  footerLinkText: { color: '#EC7928', fontWeight: 'bold' },
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   scrollContent: { padding: 25 },
   header: { alignItems: 'center', marginBottom: 20 },
